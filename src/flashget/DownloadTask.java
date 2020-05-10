@@ -21,12 +21,21 @@ public class DownloadTask extends Task<Long>{
     private URL url;
     private File dir;
     private long count;
+    private volatile boolean running = true;
 
-    public DownloadTask(long start, long size, URL url, File dir) {
+
+    /**
+     * Constructor for download task
+     * @param start is
+     * @param size is
+     * @param url is
+     * @param fileName is
+     */
+    public DownloadTask(long start, long size, URL url, File fileName) {
         this.start = start;
         this.size = size;
         this.url = url;
-        this.dir = dir;
+        this.dir = fileName;
         this.count = 0;
     }
 
@@ -48,7 +57,7 @@ public class DownloadTask extends Task<Long>{
                     updateValue(count);
                     updateProgress(bytesRead, size);
                     updateMessage(String.format("%d", count));
-                } while (bytesRead < size);
+                } while (bytesRead < size && running);
             } catch (IOException ex) {
                 System.out.println(ex.getMessage());
             }
@@ -60,5 +69,9 @@ public class DownloadTask extends Task<Long>{
         }
         return count;
     }
+    public void stopTask() {
+        running = false;
+    }
+
 }
 

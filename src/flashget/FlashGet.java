@@ -35,9 +35,13 @@ import java.util.concurrent.Executors;
  */
 public class FlashGet extends Application {
     private VBox root;
-    private Window primaryStage;
+    Window primaryStage;
     private TextField urlField;
 
+    /**
+     * Set scene and title
+     * @param primaryStage
+     */
     @Override
     public void start(Stage primaryStage) {
         root = initComponents();
@@ -54,14 +58,14 @@ public class FlashGet extends Application {
         FlowPane pane = new FlowPane();
         VBox vBox = new VBox();
         pane.setHgap(8);
-        vBox.setPrefSize(600, 130);
+        vBox.setPrefSize(670, 130);
         vBox.setPadding(new Insets(10));
         Button download = new Button("Download");
         Button clear = new Button("Clear");
         urlField = new TextField();
         DownloadHandler downloadHandler = new DownloadHandler();
         download.setOnAction(downloadHandler);
-        urlField.setPrefWidth(300);
+        urlField.setMinWidth(400);
         EventHandler<ActionEvent> clearHandler = event -> urlField.clear();
         clear.setOnAction(clearHandler);
         Label label1 = new Label("URL to download");
@@ -82,28 +86,31 @@ public class FlashGet extends Application {
 
 
     /**
-     *
+     * Inner class for download button controller
      */
     public class DownloadHandler implements EventHandler<ActionEvent> {
-        private ArrayList<Task> tasks = new ArrayList();
-        private ArrayList<ProgressBar> threadBarsList = new ArrayList();
+        // Create list of tasks
+        private ArrayList<Task<Long>> tasks = new ArrayList();
+        // Create list of progressbar for bind with threads
+        private ArrayList<ProgressBar> threadBarsLists = new ArrayList();
+        // Create list that contains thread
+        private ArrayList<DownloadThread> threads = new ArrayList<>();
         private Label sizeLabel;
         private Label name;
 
-
-
-
+        /**
+         *
+         * @param event
+         */
         @Override
         public void handle(ActionEvent event) {
-            urlField.setStyle("-fx-background-color: white;");
-            threadBarsList = new ArrayList(Arrays.asList(new ProgressBar(), new ProgressBar(), new ProgressBar(),
+            urlField.setStyle("-fx-text-inner-color: black;");
+            threadBarsLists = new ArrayList(Arrays.asList(new ProgressBar(), new ProgressBar(), new ProgressBar(),
                     new ProgressBar(),new ProgressBar()));
             FlowPane progressPane = new FlowPane();
             FlowPane threadPane = new FlowPane();
             Label progressLabel = new Label("0");
             Button cancel = new Button("Cancel");
-            Button play = new Button("\u25B6");
-            Button pause = new Button("\u25A0");
             cancel.setOnAction(this::stopTask);
             ProgressBar totalProgress = new ProgressBar();
             Label threadLabel = new Label("Threads: ");
@@ -113,6 +120,7 @@ public class FlashGet extends Application {
             String urlName = urlField.getText().trim();
             int nThreads = 5;
             totalProgress.setPrefWidth(200);
+
             try {
                 URL url = new URL(urlName);
                 URLConnection connection = url.openConnection();
@@ -127,6 +135,7 @@ public class FlashGet extends Application {
                         , new FileChooser.ExtensionFilter("PDF (.pdf)", "*.pdf")
                         , new FileChooser.ExtensionFilter("PNG (.png)", "*.png")
                         , new FileChooser.ExtensionFilter("MP4 (.mp4)", "*.mp4")
+                        , new FileChooser.ExtensionFilter("ZIP(.zip)", "*.zip")
                 );
                 String fileName = String.valueOf(fileChooser.showSaveDialog(primaryStage));
                 if (fileName.equals("null")) {
@@ -152,24 +161,25 @@ public class FlashGet extends Application {
                 }
                 sizeLabel = new Label(String.format("/ %d",length));
             } catch (MalformedURLException ex) {
-                urlField.setStyle("-fx-background-color: red;");
+                urlField.setStyle("-fx-text-inner-color: red;");
                 urlField.setText("Invalid URL");
                 return;
 
             } catch (IOException ex) {
-                urlField.setStyle("-fx-background-color: red;");
+                urlField.setStyle("-fx-text--inner-color: red;");
                 urlField.setText("Invalid URL");
                 return;
             }
             ChangeListener<String> messageListener = (subject, oldValue, newValue) -> progressLabel.setText(newValue);
             ExecutorService executor = Executors.newFixedThreadPool(nThreads);
             for (int i = 0; i < tasks.size(); i++) {
-                new Thread(tasks.get(i)).start();
+                threads.add(new DownloadThread((DownloadTask) tasks.get(i)));
+                threads.get(i).start();
                 tasks.get(i).messageProperty().addListener(messageListener);
                 executor.execute(tasks.get(i));
             }
-            progressPane.getChildren().addAll(name, totalProgress, progressLabel, sizeLabel, play, pause, cancel);
-            threadPane.getChildren().addAll(threadLabel, threadBarsList.get(0), threadBarsList.get(1), threadBarsList.get(2), threadBarsList.get(3), threadBarsList.get(4));
+            progressPane.getChildren().addAll(name, totalProgress, progressLabel, sizeLabel, cancel);
+            threadPane.getChildren().addAll(threadLabel, threadBarsLists.get(0), threadBarsLists.get(1), threadBarsLists.get(2), threadBarsLists.get(3), threadBarsLists.get(4));
             root.getChildren().addAll(progressPane, threadPane);
         }
 
@@ -188,10 +198,9 @@ public class FlashGet extends Application {
                 value = newValue;
                 newValue = (length / nThreads) * (i + 1);
                 tasks.add(new DownloadTask(value, newValue, url, file));
-                threadBarsList.get(i).progressProperty().bind(tasks.get(i).progressProperty());
+                threadBarsLists.get(i).progressProperty().bind(tasks.get(i).progressProperty());
             }
         }
-
 
 
         /**
@@ -199,14 +208,10 @@ public class FlashGet extends Application {
          *
          * @param event
          */
-        public void stopTask(ActionEvent event) {
-            for (int i = 0; i < tasks.size(); i++) {
-                tasks.get(i).cancel();
-
+        public synchronized void stopTask(ActionEvent event) {
+            for (int i = 0; i < threads.size(); i++) {
+                threads.get(i).stopThread();
             }
-//            root.getChildren().removeAll(this.output, this.thread);
-
-
         }
 
     }
