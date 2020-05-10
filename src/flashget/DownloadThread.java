@@ -2,6 +2,8 @@ package flashget;
 
 /**
  * Class for create download thread
+ *
+ * @author Kittitouch Ingkasompob
  */
 public class DownloadThread extends Thread {
     private volatile boolean isRunning = true;
@@ -27,7 +29,7 @@ public class DownloadThread extends Thread {
     }
 
     /**
-     * Stop thread
+     * Stop thread from running and stop task
      */
     public void stopThread() {
         isRunning = false;

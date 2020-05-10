@@ -137,6 +137,7 @@ public class FlashGet extends Application {
                         , new FileChooser.ExtensionFilter("MP4 (.mp4)", "*.mp4")
                         , new FileChooser.ExtensionFilter("ZIP(.zip)", "*.zip")
                 );
+                // Get file name and directory from FileChooser
                 String fileName = String.valueOf(fileChooser.showSaveDialog(primaryStage));
                 if (fileName.equals("null")) {
                     return;

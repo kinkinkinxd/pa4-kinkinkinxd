@@ -39,6 +39,10 @@ public class DownloadTask extends Task<Long>{
         this.count = 0;
     }
 
+    /**
+     * get task from URL and download
+     * @return download progress
+     */
     @Override
     public synchronized Long call() {
         updateProgress(0, size);
@@ -59,16 +63,21 @@ public class DownloadTask extends Task<Long>{
                     updateMessage(String.format("%d", count));
                 } while (bytesRead < size && running);
             } catch (IOException ex) {
-                System.out.println(ex.getMessage());
+                return null;
             }
 
         } catch (MalformedURLException e) {
-            e.getMessage();
+            return null;
+
         } catch (IOException e) {
-            e.getMessage();
+            return null;
         }
         return count;
     }
+
+    /**
+     * Stop task from running
+     */
     public void stopTask() {
         running = false;
     }
